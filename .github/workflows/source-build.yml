@@ -1,0 +1,65 @@
+name: Source build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/source-build.yml"
+      - "scripts/build-from-source-macos-arm64.sh"
+
+permissions:
+  contents: read
+
+env:
+  RELEASE_TAG: v2026.06.03
+  AVR32_PATCHES_ARCHIVE: avr32-patches.tar.gz
+  TOOLCHAIN_PREFIX: ${{ github.workspace }}/avr32-tools-src
+
+jobs:
+  source-build:
+    name: Build AVR32 toolchain from source
+    runs-on: macos-26
+    timeout-minutes: 360
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install host dependencies
+        run: |
+          brew install make coreutils gnu-sed gmp mpfr libmpc
+
+      - name: Download preserved AVR32 patch archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$AVR32_PATCHES_ARCHIVE"
+
+      - name: Build from source
+        env:
+          AVR32_PATCHES_ARCHIVE: ${{ github.workspace }}/avr32-patches.tar.gz
+          PROCS: "3"
+        run: |
+          scripts/build-from-source-macos-arm64.sh \
+            "$RUNNER_TEMP/avr32-source-build" \
+            "$TOOLCHAIN_PREFIX"
+
+      - name: Package built toolchain
+        run: |
+          COPYFILE_DISABLE=1 tar -czf avr32-tools-src-source-built-macos-arm64.tar.gz \
+            -C "$(dirname "$TOOLCHAIN_PREFIX")" \
+            "$(basename "$TOOLCHAIN_PREFIX")"
+          shasum -a 256 avr32-tools-src-source-built-macos-arm64.tar.gz > avr32-tools-src-source-built-macos-arm64.tar.gz.sha256
+
+      - name: Upload built toolchain artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: avr32-tools-src-source-built-macos-arm64
+          path: |
+            avr32-tools-src-source-built-macos-arm64.tar.gz
+            avr32-tools-src-source-built-macos-arm64.tar.gz.sha256
+          retention-days: 30
