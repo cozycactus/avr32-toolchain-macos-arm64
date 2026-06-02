@@ -27,8 +27,19 @@ curl -L https://ww1.microchip.com/downloads/archive/atmel-headers-6.1.3.1475.zip
 patch_makefile()
 {
   perl -0pi -e 's|CFLAGS="-O2 -g -fgnu89-inline"|CFLAGS="-O2 -g -fgnu89-inline -Wno-error=incompatible-function-pointer-types"\\nGCC_HOST_DEPS=--with-gmp=/opt/homebrew --with-mpfr=/opt/homebrew --with-mpc=/opt/homebrew|' Makefile
-  perl -0pi -e 's|(--target=\\$\\(TARGET\\) --enable-languages="c" --with-gnu-ld\\s*\\\\\\n)|$1\\t\\$\\(GCC_HOST_DEPS\\)\\t\\t\\t\\t\\t\\t\\\\\\n|' Makefile
-  perl -0pi -e 's|(--target=\\$\\(TARGET\\) \\$\\(DEPENDENCIES\\) --enable-languages="c,c\\+\\+" --with-gnu-ld \\\\\\n)|$1\\t\\$\\(GCC_HOST_DEPS\\) \\\\\\n|' Makefile
+  tmp_makefile="$(mktemp)"
+  awk '
+    {
+      print
+      if ($0 ~ /--target=\$\(TARGET\) --enable-languages="c" --with-gnu-ld/) {
+        print "\t$(GCC_HOST_DEPS)\t\t\t\t\t\t\\"
+      }
+      if ($0 ~ /--target=\$\(TARGET\) \$\(DEPENDENCIES\) --enable-languages="c,c\+\+" --with-gnu-ld/) {
+        print "\t$(GCC_HOST_DEPS) \\"
+      }
+    }
+  ' Makefile > "${tmp_makefile}"
+  mv "${tmp_makefile}" Makefile
 }
 
 patch_support_sources()
