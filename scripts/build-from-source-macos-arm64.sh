@@ -44,9 +44,7 @@ patch_makefile()
 
 patch_support_sources()
 {
-  if ! grep -q '#include <string.h>' gperf-3.0.4/lib/getopt.c; then
-    perl -0pi -e 's|#include <stdio.h>\n|#include <stdio.h>\n#include <string.h>\n|' gperf-3.0.4/lib/getopt.c
-  fi
+  perl -0pi -e 's|#include <stdio.h>\n|#include <stdio.h>\n#include <string.h>\n|' gperf-3.0.4/lib/getopt.c
 
   if ! grep -q '#include <sys/ioctl.h>' texinfo-4.13/info/terminal.c; then
     perl -0pi -e 's|#include <sys/types.h>\n|#include <sys/types.h>\n#include <sys/ioctl.h>\n|' texinfo-4.13/info/terminal.c
