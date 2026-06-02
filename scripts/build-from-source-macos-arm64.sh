@@ -26,7 +26,7 @@ curl -L https://ww1.microchip.com/downloads/archive/atmel-headers-6.1.3.1475.zip
 
 patch_makefile()
 {
-  perl -0pi -e 's|CFLAGS="-O2 -g -fgnu89-inline"|CFLAGS="-O2 -g -fgnu89-inline -Wno-error=incompatible-function-pointer-types"\\nGCC_HOST_DEPS=--with-gmp=/opt/homebrew --with-mpfr=/opt/homebrew --with-mpc=/opt/homebrew|' Makefile
+  perl -0pi -e 's|CFLAGS="-O2 -g -fgnu89-inline"|CFLAGS="-O2 -g -fgnu89-inline -Wno-error=incompatible-function-pointer-types"\nGCC_HOST_DEPS=--with-gmp=/opt/homebrew --with-mpfr=/opt/homebrew --with-mpc=/opt/homebrew|' Makefile
   tmp_makefile="$(mktemp)"
   awk '
     {
@@ -45,29 +45,29 @@ patch_makefile()
 patch_support_sources()
 {
   if ! grep -q '#include <string.h>' gperf-3.0.4/lib/getopt.c; then
-    perl -0pi -e 's|#include <stdio.h>\\n|#include <stdio.h>\\n#include <string.h>\\n|' gperf-3.0.4/lib/getopt.c
+    perl -0pi -e 's|#include <stdio.h>\n|#include <stdio.h>\n#include <string.h>\n|' gperf-3.0.4/lib/getopt.c
   fi
 
   if ! grep -q '#include <sys/ioctl.h>' texinfo-4.13/info/terminal.c; then
-    perl -0pi -e 's|#include <sys/types.h>\\n|#include <sys/types.h>\\n#include <sys/ioctl.h>\\n|' texinfo-4.13/info/terminal.c
+    perl -0pi -e 's|#include <sys/types.h>\n|#include <sys/types.h>\n#include <sys/ioctl.h>\n|' texinfo-4.13/info/terminal.c
   fi
 }
 
 patch_gcc_sources()
 {
   if ! grep -q '#include <stdlib.h>' gcc-4.4.7/libiberty/regex.c; then
-    perl -0pi -e 's|#include <ansidecl.h>\\n|#include <ansidecl.h>\\n#include <stdlib.h>\\n|' gcc-4.4.7/libiberty/regex.c
+    perl -0pi -e 's|#include <ansidecl.h>\n|#include <ansidecl.h>\n#include <stdlib.h>\n|' gcc-4.4.7/libiberty/regex.c
   fi
-  perl -0pi -e 's|\\n#  if defined STDC_HEADERS \\|\\| defined _LIBC\\n#   include <stdlib.h>\\n#  else\\nchar \\*malloc \\(\\);\\nchar \\*realloc \\(\\);\\n#  endif\\n|\\n|' gcc-4.4.7/libiberty/regex.c
+  perl -0pi -e 's|\n#  if defined STDC_HEADERS \|\| defined _LIBC\n#   include <stdlib.h>\n#  else\nchar \*malloc \(\);\nchar \*realloc \(\);\n#  endif\n|\n|' gcc-4.4.7/libiberty/regex.c
 
   if ! grep -q '^#include <string.h>' gcc-4.4.7/libiberty/md5.c; then
-    perl -0pi -e 's|#include <sys/types.h>\\n|#include <string.h>\\n#include <sys/types.h>\\n|' gcc-4.4.7/libiberty/md5.c
+    perl -0pi -e 's|#include <sys/types.h>\n|#include <string.h>\n#include <sys/types.h>\n|' gcc-4.4.7/libiberty/md5.c
   fi
-  perl -0pi -e 's|# include <stdlib.h>\\n# include <string.h>\\n|# include <stdlib.h>\\n|' gcc-4.4.7/libiberty/md5.c
+  perl -0pi -e 's|# include <stdlib.h>\n# include <string.h>\n|# include <stdlib.h>\n|' gcc-4.4.7/libiberty/md5.c
 
-  perl -0pi -e 's|return NULL_TREE;\\s*|return false;\\n|' gcc-4.4.7/gcc/config/avr32/avr32.c
-  perl -0pi -e 's|rtx\\nnext_insn_emits_cmp \\(rtx cur_insn\\)|int\\nnext_insn_emits_cmp (rtx cur_insn)|' gcc-4.4.7/gcc/config/avr32/avr32.c
-  perl -0pi -e 's|\\n  rtx cond = NULL_RTX;\\n|\\n|' gcc-4.4.7/gcc/config/avr32/avr32.c
+  perl -0pi -e 's|return NULL_TREE;\s*|return false;\n|' gcc-4.4.7/gcc/config/avr32/avr32.c
+  perl -0pi -e 's|rtx\nnext_insn_emits_cmp \(rtx cur_insn\)|int\nnext_insn_emits_cmp (rtx cur_insn)|' gcc-4.4.7/gcc/config/avr32/avr32.c
+  perl -0pi -e 's|\n  rtx cond = NULL_RTX;\n|\n|' gcc-4.4.7/gcc/config/avr32/avr32.c
   perl -0pi -e 's|rtx next_insn_emits_cmp \\(rtx cur_insn\\);|int next_insn_emits_cmp (rtx cur_insn);|' gcc-4.4.7/gcc/config/avr32/avr32-protos.h
 
   if ! grep -q 'aarch64.*darwin' gcc-4.4.7/gcc/config.host; then
