@@ -90,6 +90,7 @@ patch_gcc_sources()
   fi
 
   perl -0pi -e 's|aligned \\(4096\\)|aligned (16384)|' gcc-4.4.7/gcc/config/host-darwin.c
+  perl -0pi -e 's{  gcc_assert \(\(size_t\)pch_address_space % pagesize == 0\n\t      && sizeof \(pch_address_space\) % pagesize == 0\);\n}{  if ((size_t) pch_address_space % pagesize != 0\n      || sizeof (pch_address_space) % pagesize != 0)\n    return 0;\n}' gcc-4.4.7/gcc/config/host-darwin.c
 }
 
 patch_newlib_sources()
