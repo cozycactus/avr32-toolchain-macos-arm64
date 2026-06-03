@@ -8,6 +8,19 @@ repo="${AVR32_TOOLCHAIN_REPO:-https://github.com/denravonska/avr32-toolchain.git
 patch_archive="${AVR32_PATCHES_ARCHIVE:-$PWD/avr32-patches.tar.gz}"
 src="${workdir}/avr32-toolchain"
 
+dump_failure_logs()
+{
+  status=$?
+  if [ "${status}" -ne 0 ] && [ -d "${src}/build" ]; then
+    find "${src}/build" -path '*/config.log' -print | while IFS= read -r log; do
+      printf '\n===== %s =====\n' "${log}" >&2
+      tail -n 160 "${log}" >&2
+    done
+  fi
+  exit "${status}"
+}
+trap dump_failure_logs EXIT
+
 if [ ! -f "${patch_archive}" ]; then
   printf 'missing AVR32 patch archive: %s\n' "${patch_archive}" >&2
   exit 1
