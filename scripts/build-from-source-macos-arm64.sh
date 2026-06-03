@@ -56,7 +56,11 @@ patch_gcc_sources()
   if ! grep -q '#include <stdlib.h>' gcc-4.4.7/libiberty/regex.c; then
     perl -0pi -e 's|#include <ansidecl.h>\n|#include <ansidecl.h>\n#include <stdlib.h>\n|' gcc-4.4.7/libiberty/regex.c
   fi
-  perl -0pi -e 's|\n#  if defined STDC_HEADERS \|\| defined _LIBC\n#   include <stdlib.h>\n#  else\nchar \*malloc \(\);\nchar \*realloc \(\);\n#  endif\n|\n|' gcc-4.4.7/libiberty/regex.c
+  perl -0pi -e 's{\n#\s*if defined STDC_HEADERS \|\| defined _LIBC\n#\s*include <stdlib\.h>\n#\s*else\nchar \*malloc \(\);\nchar \*realloc \(\);\n#\s*endif\n}{\n}g' gcc-4.4.7/libiberty/regex.c
+  if grep -q 'char \*malloc ();' gcc-4.4.7/libiberty/regex.c || grep -q 'char \*realloc ();' gcc-4.4.7/libiberty/regex.c; then
+    printf 'failed to patch legacy allocator declarations in gcc-4.4.7/libiberty/regex.c\n' >&2
+    exit 1
+  fi
 
   if ! grep -q '^#include <string.h>' gcc-4.4.7/libiberty/md5.c; then
     perl -0pi -e 's|#include <sys/types.h>\n|#include <string.h>\n#include <sys/types.h>\n|' gcc-4.4.7/libiberty/md5.c
