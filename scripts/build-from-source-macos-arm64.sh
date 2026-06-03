@@ -67,10 +67,10 @@ patch_gcc_sources()
   fi
   perl -0pi -e 's|# include <stdlib.h>\n# include <string.h>\n|# include <stdlib.h>\n|' gcc-4.4.7/libiberty/md5.c
 
-  perl -0pi -e 's|return NULL_TREE;\s*|return false;\n|' gcc-4.4.7/gcc/config/avr32/avr32.c
+  perl -0pi -e 's|return \(lookup_attribute \(name, DECL_ATTRIBUTES\(decl\)\) != NULL_TREE\);\n    }\n  return NULL_TREE;\s*|return (lookup_attribute (name, DECL_ATTRIBUTES(decl)) != NULL_TREE);\n    }\n  return false;\n|' gcc-4.4.7/gcc/config/avr32/avr32.c
   perl -0pi -e 's|rtx\nnext_insn_emits_cmp \(rtx cur_insn\)|int\nnext_insn_emits_cmp (rtx cur_insn)|' gcc-4.4.7/gcc/config/avr32/avr32.c
-  perl -0pi -e 's|\n  rtx cond = NULL_RTX;\n|\n|' gcc-4.4.7/gcc/config/avr32/avr32.c
-  perl -0pi -e 's|rtx next_insn_emits_cmp \\(rtx cur_insn\\);|int next_insn_emits_cmp (rtx cur_insn);|' gcc-4.4.7/gcc/config/avr32/avr32-protos.h
+  perl -0pi -e 's|int\nnext_insn_emits_cmp \(rtx cur_insn\)\n\{\n  rtx next_insn = next_nonnote_insn \(cur_insn\);\n  rtx cond = NULL_RTX;\n|int\nnext_insn_emits_cmp (rtx cur_insn)\n{\n  rtx next_insn = next_nonnote_insn (cur_insn);\n|' gcc-4.4.7/gcc/config/avr32/avr32.c
+  perl -0pi -e 's|rtx next_insn_emits_cmp \(rtx cur_insn\);|int next_insn_emits_cmp (rtx cur_insn);|' gcc-4.4.7/gcc/config/avr32/avr32-protos.h
 
   if ! grep -q 'aarch64.*darwin' gcc-4.4.7/gcc/config.host; then
     perl -0pi -e 's#  powerpc-\*-beos\*\)\n#  arm*-*-darwin* | aarch64*-*-darwin*)\n    out_host_hook_obj="\${out_host_hook_obj} host-i386-darwin.o"\n    host_xmake_file="\${host_xmake_file} i386/x-darwin"\n    ;;\n  powerpc-*-beos*)\n#' gcc-4.4.7/gcc/config.host
