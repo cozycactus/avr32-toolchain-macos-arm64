@@ -95,8 +95,8 @@ patch_gcc_sources()
 
 patch_newlib_sources()
 {
-  perl -0pi -e 's|add_to_definition\\(ptr, atol\\(word\\)\\);|add_to_definition(ptr, (stinst_type) atol(word));|' newlib-1.19.0/newlib/doc/makedoc.c
-  perl -0pi -e 's|add_to_definition\\(ptr, lookup_word\\(word\\)\\);|add_to_definition(ptr, (stinst_type) lookup_word(word));|' newlib-1.19.0/newlib/doc/makedoc.c
+  perl -0pi -e 's|add_to_definition\s*\(\s*ptr\s*,\s*atol\s*\(\s*word\s*\)\s*\);|add_to_definition(ptr, (stinst_type) atol(word));|g' newlib-1.19.0/newlib/doc/makedoc.c
+  perl -0pi -e 's|add_to_definition\s*\(\s*ptr\s*,\s*lookup_word\s*\(\s*word\s*\)\s*\);|add_to_definition(ptr, (stinst_type) lookup_word(word));|g' newlib-1.19.0/newlib/doc/makedoc.c
 }
 
 patch_makefile
