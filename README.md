@@ -1,8 +1,8 @@
-# AVR32 GNU Toolchain for macOS ARM64
+# AVR32 GNU Toolchain for macOS
 
-This repository preserves a working AVR32 GCC toolchain built from source on macOS Apple Silicon.
+This repository preserves a working AVR32 GCC toolchain built from source on macOS.
 
-The compiled toolchain is published as a GitHub Release asset, not committed to Git history.
+The currently published compiled toolchain is for macOS Apple Silicon. The source build script also supports Intel macOS by detecting the active Homebrew prefix and passing the matching GCC host dependency paths.
 
 ## Contents
 
@@ -54,6 +54,20 @@ $HOME/avr32-tools-src/atmel-headers/atmel-headers-6.1.3.1475
 
 ## Source Build Notes
 
+Install host dependencies first:
+
+```sh
+brew install make coreutils gnu-sed gawk gmp mpfr libmpc
+```
+
+Build from source on either Apple Silicon or Intel macOS:
+
+```sh
+scripts/build-from-source-macos.sh "$PWD/source-build" "$PWD/avr32-tools-src"
+```
+
+The script uses `brew --prefix` when available, so GCC host dependencies resolve to `/opt/homebrew` on Apple Silicon and `/usr/local` on Intel Homebrew installations. You can override this with `BREW_PREFIX=/path/to/homebrew`.
+
 The build was based on:
 
 - `https://github.com/denravonska/avr32-toolchain`
@@ -66,7 +80,7 @@ The build was based on:
 Modern macOS fixes applied during the successful build:
 
 - Added missing system includes to `gperf` and `texinfo`.
-- Pointed GCC configure at Homebrew `gmp`, `mpfr`, and `mpc`.
+- Pointed GCC configure at Homebrew `gmp`, `mpfr`, and `mpc`, using the detected Homebrew prefix for the host architecture.
 - Suppressed modern Clang incompatible function-pointer diagnostics for GCC host tools.
 - Fixed old `libiberty` source assumptions around standard declarations.
 - Fixed AVR32 backend type/prototype issues exposed by modern host compilers.

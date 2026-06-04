@@ -1,3 +1,6 @@
 releases/*.tar.gz
 releases/*.zip
 *.DS_Store
+avr32-patches.tar.gz
+avr32-tools-src/
+source-build/

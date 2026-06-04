@@ -7,6 +7,8 @@ on:
       - main
     paths:
       - ".github/workflows/source-build.yml"
+      - "patches/**"
+      - "scripts/build-from-source-macos.sh"
       - "scripts/build-from-source-macos-arm64.sh"
 
 permissions:
@@ -19,9 +21,17 @@ env:
 
 jobs:
   source-build:
-    name: Build AVR32 toolchain from source
-    runs-on: macos-26
+    name: Build AVR32 toolchain from source (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-26
+          - arch: x86_64
+            runner: macos-26-intel
 
     steps:
       - name: Check out repository
@@ -44,22 +54,23 @@ jobs:
           AVR32_PATCHES_ARCHIVE: ${{ github.workspace }}/avr32-patches.tar.gz
           PROCS: "3"
         run: |
-          scripts/build-from-source-macos-arm64.sh \
+          scripts/build-from-source-macos.sh \
             "$RUNNER_TEMP/avr32-source-build" \
             "$TOOLCHAIN_PREFIX"
 
       - name: Package built toolchain
         run: |
-          COPYFILE_DISABLE=1 tar -czf avr32-tools-src-source-built-macos-arm64.tar.gz \
+          archive="avr32-tools-src-source-built-macos-${{ matrix.arch }}.tar.gz"
+          COPYFILE_DISABLE=1 tar -czf "$archive" \
             -C "$(dirname "$TOOLCHAIN_PREFIX")" \
             "$(basename "$TOOLCHAIN_PREFIX")"
-          shasum -a 256 avr32-tools-src-source-built-macos-arm64.tar.gz > avr32-tools-src-source-built-macos-arm64.tar.gz.sha256
+          shasum -a 256 "$archive" > "$archive.sha256"
 
       - name: Upload built toolchain artifact
         uses: actions/upload-artifact@v4
         with:
-          name: avr32-tools-src-source-built-macos-arm64
+          name: avr32-tools-src-source-built-macos-${{ matrix.arch }}
           path: |
-            avr32-tools-src-source-built-macos-arm64.tar.gz
-            avr32-tools-src-source-built-macos-arm64.tar.gz.sha256
+            avr32-tools-src-source-built-macos-${{ matrix.arch }}.tar.gz
+            avr32-tools-src-source-built-macos-${{ matrix.arch }}.tar.gz.sha256
           retention-days: 30
