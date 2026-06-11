@@ -4,10 +4,14 @@ set -eu
 workdir="${1:-$PWD/source-build}"
 prefix="${2:-$PWD/avr32-tools-src}"
 procs="${PROCS:-3}"
+newlib_version="${NEWLIB_VERSION:-1.16.0}"
 repo="${AVR32_TOOLCHAIN_REPO:-https://github.com/denravonska/avr32-toolchain.git}"
 patch_archive="${AVR32_PATCHES_ARCHIVE:-$PWD/avr32-patches.tar.gz}"
 src="${workdir}/avr32-toolchain"
+host_os="$(uname -s)"
 host_arch="$(uname -m)"
+newlib_archive="newlib-${newlib_version}.tar.gz"
+newlib_url="https://sourceware.org/pub/newlib/${newlib_archive}"
 
 detect_brew_prefix()
 {
@@ -22,9 +26,43 @@ detect_brew_prefix()
   fi
 }
 
-brew_prefix="$(detect_brew_prefix)"
-gcc_host_deps="--with-gmp=${brew_prefix} --with-mpfr=${brew_prefix} --with-mpc=${brew_prefix}"
+detect_make()
+{
+  if [ -n "${MAKE:-}" ]; then
+    printf '%s\n' "${MAKE}"
+  elif command -v gmake >/dev/null 2>&1; then
+    printf '%s\n' "gmake"
+  else
+    printf '%s\n' "make"
+  fi
+}
+
+file_md5()
+{
+  if command -v md5sum >/dev/null 2>&1; then
+    md5sum "$1" | awk '{print $1}'
+  elif command -v md5 >/dev/null 2>&1; then
+    md5 -q "$1"
+  else
+    printf 'missing md5sum/md5 command\n' >&2
+    exit 1
+  fi
+}
+
+brew_prefix=""
+if [ "${host_os}" = "Darwin" ]; then
+  brew_prefix="$(detect_brew_prefix)"
+fi
+
+if [ -n "${GCC_HOST_DEPS:-}" ]; then
+  gcc_host_deps="${GCC_HOST_DEPS}"
+elif [ -n "${brew_prefix}" ]; then
+  gcc_host_deps="--with-gmp=${brew_prefix} --with-mpfr=${brew_prefix} --with-mpc=${brew_prefix}"
+else
+  gcc_host_deps=""
+fi
 export gcc_host_deps
+make_cmd="$(detect_make)"
 
 dump_failure_logs()
 {
@@ -39,8 +77,14 @@ dump_failure_logs()
 }
 trap dump_failure_logs EXIT
 
+printf 'host operating system: %s\n' "${host_os}"
 printf 'host architecture: %s\n' "${host_arch}"
-printf 'Homebrew prefix for GCC host deps: %s\n' "${brew_prefix}"
+if [ -n "${brew_prefix}" ]; then
+  printf 'Homebrew prefix for GCC host deps: %s\n' "${brew_prefix}"
+fi
+printf 'GCC host dependency configure args: %s\n' "${gcc_host_deps:-<system default>}"
+printf 'make command: %s\n' "${make_cmd}"
+printf 'newlib version: %s\n' "${newlib_version}"
 
 if [ ! -f "${patch_archive}" ]; then
   printf 'missing AVR32 patch archive: %s\n' "${patch_archive}" >&2
@@ -55,20 +99,24 @@ cd "${src}"
 
 mkdir -p downloads
 cp "${patch_archive}" downloads/avr32-patches.tar.gz
-curl -L https://sourceware.org/pub/newlib/newlib-1.19.0.tar.gz -o downloads/newlib-1.19.0.tar.gz
+curl -L "${newlib_url}" -o "downloads/${newlib_archive}"
 curl -L https://ww1.microchip.com/downloads/archive/atmel-headers-6.1.3.1475.zip -o downloads/atmel-headers-6.1.3.1475.zip
+newlib_md5="$(file_md5 "downloads/${newlib_archive}")"
+export newlib_version newlib_url newlib_md5
 
 patch_makefile()
 {
+  perl -0pi -e 's|^NEWLIB_VERSION\s*=.*$|NEWLIB_VERSION   = $ENV{newlib_version}|m; s|^NEWLIB_URL\s*=.*$|NEWLIB_URL = $ENV{newlib_url}|m; s|^NEWLIB_MD5\s*=.*$|NEWLIB_MD5 = $ENV{newlib_md5}|m' Makefile
+  perl -0pi -e 's|https?://ftpmirror\.gnu\.org/texinfo/\$\(TEXINFO_ARCHIVE\)|https://ftp.gnu.org/gnu/texinfo/$(TEXINFO_ARCHIVE)|g' Makefile
   perl -0pi -e 's|CFLAGS="-O2 -g -fgnu89-inline"|CFLAGS="-O2 -g -fgnu89-inline -Wno-error=incompatible-function-pointer-types"\nGCC_HOST_DEPS=$ENV{gcc_host_deps}|' Makefile
   tmp_makefile="$(mktemp)"
-  awk '
+  awk -v inject_gcc_host_deps="${gcc_host_deps}" '
     {
       print
-      if ($0 ~ /--target=\$\(TARGET\) --enable-languages="c" --with-gnu-ld/) {
+      if (inject_gcc_host_deps != "" && $0 ~ /--target=\$\(TARGET\) --enable-languages="c" --with-gnu-ld/) {
         print "\t$(GCC_HOST_DEPS)\t\t\t\t\t\t\\"
       }
-      if ($0 ~ /--target=\$\(TARGET\) \$\(DEPENDENCIES\) --enable-languages="c,c\+\+" --with-gnu-ld/) {
+      if (inject_gcc_host_deps != "" && $0 ~ /--target=\$\(TARGET\) \$\(DEPENDENCIES\) --enable-languages="c,c\+\+" --with-gnu-ld/) {
         print "\t$(GCC_HOST_DEPS) \\"
       }
     }
@@ -116,23 +164,23 @@ patch_gcc_sources()
 
 patch_newlib_sources()
 {
-  perl -0pi -e 's|add_to_definition\s*\(\s*ptr\s*,\s*atol\s*\(\s*word\s*\)\s*\);|add_to_definition(ptr, (stinst_type) atol(word));|g' newlib-1.19.0/newlib/doc/makedoc.c
-  perl -0pi -e 's|add_to_definition\s*\(\s*ptr\s*,\s*lookup_word\s*\(\s*word\s*\)\s*\);|add_to_definition(ptr, (stinst_type) lookup_word(word));|g' newlib-1.19.0/newlib/doc/makedoc.c
+  perl -0pi -e 's|add_to_definition\s*\(\s*ptr\s*,\s*atol\s*\(\s*word\s*\)\s*\);|add_to_definition(ptr, (stinst_type) atol(word));|g' "newlib-${newlib_version}/newlib/doc/makedoc.c"
+  perl -0pi -e 's|add_to_definition\s*\(\s*ptr\s*,\s*lookup_word\s*\(\s*word\s*\)\s*\);|add_to_definition(ptr, (stinst_type) lookup_word(word));|g' "newlib-${newlib_version}/newlib/doc/makedoc.c"
 }
 
 patch_makefile
 
-gmake stamps/extract-gperf stamps/extract-texinfo PREFIX="${prefix}" PROCS="${procs}"
+"${make_cmd}" stamps/extract-gperf stamps/extract-texinfo PREFIX="${prefix}" PROCS="${procs}"
 patch_support_sources
-gmake stamps/install-supp-tools PREFIX="${prefix}" PROCS="${procs}"
+"${make_cmd}" stamps/install-supp-tools PREFIX="${prefix}" PROCS="${procs}"
 
-gmake stamps/patch-gcc PREFIX="${prefix}" PROCS="${procs}"
+"${make_cmd}" stamps/patch-gcc PREFIX="${prefix}" PROCS="${procs}"
 patch_gcc_sources
 
-gmake stamps/patch-newlib PREFIX="${prefix}" PROCS="${procs}"
+"${make_cmd}" stamps/patch-newlib PREFIX="${prefix}" PROCS="${procs}"
 patch_newlib_sources
 
-gmake install-tools PREFIX="${prefix}" PROCS="${procs}"
+"${make_cmd}" install-tools PREFIX="${prefix}" PROCS="${procs}"
 
 "${prefix}/bin/avr32-gcc" --version | head -n 1
 printf 'int main(void){return 0;}\n' | "${prefix}/bin/avr32-gcc" -mpart=uc3a3256 -x c -o "${workdir}/avr32-source-build-smoke.elf" -

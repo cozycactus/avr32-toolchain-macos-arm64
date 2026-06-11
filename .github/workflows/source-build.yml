@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.3
 
       - name: Install host dependencies
         run: |
@@ -67,7 +67,7 @@ jobs:
           shasum -a 256 "$archive" > "$archive.sha256"
 
       - name: Upload built toolchain artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: avr32-tools-src-source-built-macos-${{ matrix.arch }}
           path: |
