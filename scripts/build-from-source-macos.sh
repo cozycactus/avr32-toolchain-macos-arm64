@@ -164,6 +164,10 @@ patch_gcc_sources()
 
 patch_newlib_sources()
 {
+  if ! grep -q '#include <string.h>' "newlib-${newlib_version}/newlib/doc/makedoc.c"; then
+    perl -0pi -e 's|#include <ctype.h>\n|#include <ctype.h>\n#include <string.h>\n|' "newlib-${newlib_version}/newlib/doc/makedoc.c"
+  fi
+  perl -0pi -e 's|(?<!unsigned int\n)DEFUN\(copy_past_newline,|unsigned int\nDEFUN(copy_past_newline,|' "newlib-${newlib_version}/newlib/doc/makedoc.c"
   perl -0pi -e 's|add_to_definition\s*\(\s*ptr\s*,\s*atol\s*\(\s*word\s*\)\s*\);|add_to_definition(ptr, (stinst_type) atol(word));|g' "newlib-${newlib_version}/newlib/doc/makedoc.c"
   perl -0pi -e 's|add_to_definition\s*\(\s*ptr\s*,\s*lookup_word\s*\(\s*word\s*\)\s*\);|add_to_definition(ptr, (stinst_type) lookup_word(word));|g' "newlib-${newlib_version}/newlib/doc/makedoc.c"
 }
