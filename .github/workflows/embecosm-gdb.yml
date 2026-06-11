@@ -1,0 +1,73 @@
+name: Embecosm AVR32 GDB
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/embecosm-gdb.yml"
+      - "README.md"
+      - "scripts/build-avr32-gdb.sh"
+      - "scripts/verify-embecosm-refs.sh"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/embecosm-gdb.yml"
+      - "README.md"
+      - "scripts/build-avr32-gdb.sh"
+      - "scripts/verify-embecosm-refs.sh"
+
+permissions:
+  contents: read
+
+jobs:
+  build-gdb:
+    name: Build AVR32 GDB (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - macos-26
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6.0.3
+
+      - name: Install Linux host dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential bison flex texinfo libncurses-dev libexpat1-dev
+
+      - name: Install macOS host dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew install make bison flex
+
+      - name: Check shell scripts
+        run: |
+          sh -n scripts/*.sh
+
+      - name: Verify Embecosm branch refs
+        run: |
+          scripts/verify-embecosm-refs.sh
+
+      - name: Build AVR32 GDB
+        env:
+          PROCS: "3"
+        run: |
+          scripts/build-avr32-gdb.sh \
+            "$RUNNER_TEMP/avr32-gdb-build" \
+            "$RUNNER_TEMP/avr32-tools-src"
+
+      - name: Upload AVR32 GDB artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: avr32-gdb-${{ matrix.os }}
+          path: ${{ runner.temp }}/avr32-tools-src
+          retention-days: 30
