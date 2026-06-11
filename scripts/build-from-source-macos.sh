@@ -107,7 +107,7 @@ export newlib_version newlib_url newlib_md5
 patch_makefile()
 {
   perl -0pi -e 's|^NEWLIB_VERSION\s*=.*$|NEWLIB_VERSION   = $ENV{newlib_version}|m; s|^NEWLIB_URL\s*=.*$|NEWLIB_URL = $ENV{newlib_url}|m; s|^NEWLIB_MD5\s*=.*$|NEWLIB_MD5 = $ENV{newlib_md5}|m' Makefile
-  perl -0pi -e 's|https?://ftpmirror\.gnu\.org/texinfo/\$\(TEXINFO_ARCHIVE\)|https://ftp.gnu.org/gnu/texinfo/$(TEXINFO_ARCHIVE)|g' Makefile
+  perl -0pi -e 's|https?://ftpmirror\.gnu\.org/texinfo/\$\(TEXINFO_ARCHIVE\)|https://ftp.gnu.org/gnu/texinfo/\$(TEXINFO_ARCHIVE)|g' Makefile
   perl -0pi -e 's|CFLAGS="-O2 -g -fgnu89-inline"|CFLAGS="-O2 -g -fgnu89-inline -Wno-error=incompatible-function-pointer-types"\nGCC_HOST_DEPS=$ENV{gcc_host_deps}|' Makefile
   tmp_makefile="$(mktemp)"
   awk -v inject_gcc_host_deps="${gcc_host_deps}" '
