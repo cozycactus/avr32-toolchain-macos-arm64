@@ -14,6 +14,23 @@ The currently published compiled toolchain is for macOS Apple Silicon. The sourc
 
 The release archive intentionally excludes Atmel/Microchip device headers. Fetch those separately with `scripts/fetch-atmel-headers.sh`.
 
+## Homebrew
+
+On macOS Apple Silicon, install the published toolchain through the `cozycactus/tap` Homebrew tap:
+
+```sh
+brew tap cozycactus/tap
+brew install avr32-toolchain
+```
+
+Homebrew 6 may require explicitly trusting third-party taps before install:
+
+```sh
+brew trust cozycactus/tap
+```
+
+The formula installs the compiler, binutils, AVR32 newlib runtime, and an Embecosm-built `avr32-gdb`.
+
 ## Restore
 
 Download the release asset and unpack it anywhere:
